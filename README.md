@@ -1,10 +1,16 @@
-Agri-Allied AI Crop Advisory Chatbot
-A web-based intelligent crop advisory platform engineered to provide rapid, localized troubleshooting support for farmers and field supervisors. The application allows users to describe real-time agricultural issues—such as unexpected crop symptoms, pest infestations, or nutrient deficiencies—in plain, natural language.
+# React + Vite
 
-Key Technical Highlights:
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Context-Aware AI: Dynamic backend processing via LLM API optimized explicitly for the unique mountain farming and agro-climatic conditions of Uttarakhand.
+Currently, two official plugins are available:
 
-Responsible AI Guardrails: Integrated safety layers to prompt professional verification and minimize high-stakes decision risks.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-Modern FSD Stack: Built using a responsive frontend interface and an asynchronous, API-driven backend.
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
