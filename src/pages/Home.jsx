@@ -1,11 +1,28 @@
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar.jsx';
 import Hero from '../components/Hero.jsx';
 import Card from '../components/Card.jsx';
 import Footer from '../components/Footer.jsx';
 
 export default function Home() {
+  // Local theme mirroring state
+  const [isDark, setIsDark] = useState(false);
+
+  // Checks the document element class to see if dark mode is active
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    setIsDark(document.documentElement.classList.contains('dark'));
+    
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
+    // Dynamically shifts background and base text colors while keeping your structural layout intact
+    <div className={`flex flex-col min-h-screen transition-colors duration-200 ${isDark ? 'bg-slate-950 text-slate-50' : 'bg-slate-50 text-slate-900'}`}>
       {/* 1. Navbar */}
       <Navbar />
       
@@ -14,7 +31,7 @@ export default function Home() {
       
       {/* 3. Main Area with a Grid layout for Cards */}
       <main className="flex-grow container mx-auto px-4 py-12">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6 border-b border-slate-200 pb-2">
+        <h2 className={`text-2xl font-bold mb-6 border-b pb-2 transition-colors duration-200 ${isDark ? 'text-slate-100 border-slate-800' : 'text-slate-900 border-slate-200'}`}>
           Diagnostic Core Modules
         </h2>
         
