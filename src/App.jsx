@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Demo from './pages/Demo'; // <-- Added the component showcase page import
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/demo" element={<Demo />} /> {/* <-- Added the interactive demo layout route */}
       </Routes>
     </Router>
   );

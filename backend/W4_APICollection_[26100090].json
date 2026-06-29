@@ -1,0 +1,157 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    "name": "W4_AgriAlliedAI_Collection",
+    "description": "Automated testing collection for Week 4 Agri-Allied AI Chatbot backend REST validation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. GET All Diagnostics",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/diagnostics",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "diagnostics"]
+        }
+      },
+      "response": [
+        {
+          "name": "Success Status 200",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "[\n  { \"id\": \"1\", \"cropType\": \"Wheat\", \"issueCategory\": \"Pest\", \"description\": \"Yellowing leaves with small brown rust spots.\", \"status\": \"resolved\", \"severity\": \"medium\" }\n]"
+        }
+      ]
+    },
+    {
+      "name": "2. GET Search Diagnostics",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/diagnostics/search?status=pending",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "diagnostics", "search"],
+          "query": [{ "key": "status", "value": "pending" }]
+        }
+      },
+      "response": [
+        {
+          "name": "Success Status 200",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "[\n  { \"id\": \"2\", \"cropType\": \"Rice\", \"issueCategory\": \"Nutrient\", \"description\": \"Stunted growth and pale green leaves.\", \"status\": \"pending\", \"severity\": \"high\" }\n]"
+        }
+      ]
+    },
+    {
+      "name": "3. GET Single Diagnostic Profile",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/diagnostics/1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "diagnostics", "1"]
+        }
+      },
+      "response": [
+        {
+          "name": "Success Status 200",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{ \"id\": \"1\", \"cropType\": \"Wheat\", \"issueCategory\": \"Pest\", \"status\": \"resolved\" }"
+        }
+      ]
+    },
+    {
+      "name": "4. POST Create Diagnostic Ticket",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cropType\": \"Maize\",\n  \"issueCategory\": \"Fungal\",\n  \"description\": \"Powdery white mildew coating stem extensions.\",\n  \"severity\": \"high\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/diagnostics",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "diagnostics"]
+        }
+      },
+      "response": [
+        {
+          "name": "Created Status 201",
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "body": "{ \"id\": \"5\", \"cropType\": \"Maize\", \"issueCategory\": \"Fungal\", \"status\": \"active\", \"severity\": \"high\" }"
+        }
+      ]
+    },
+    {
+      "name": "5. PUT Modify Diagnostic Entry",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"resolved\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/diagnostics/4",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "diagnostics", "4"]
+        }
+      },
+      "response": [
+        {
+          "name": "Success Status 200",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{ \"id\": \"4\", \"cropType\": \"Tomato\", \"status\": \"resolved\" }"
+        }
+      ]
+    },
+    {
+      "name": "6. DELETE Diagnostic Entry",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/diagnostics/3",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "diagnostics", "3"]
+        }
+      },
+      "response": [
+        {
+          "name": "No Content Status 204",
+          "status": "No Content",
+          "code": 204,
+          "_postman_previewlanguage": "plain",
+          "body": ""
+        }
+      ]
+    }
+  ]
+}
