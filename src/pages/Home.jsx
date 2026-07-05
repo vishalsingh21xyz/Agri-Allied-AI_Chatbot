@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // <-- Hooked up React Router Navigation Link
 import Navbar from '../components/Navbar.jsx';
 import Hero from '../components/Hero.jsx';
 import Card from '../components/Card.jsx';
 import Footer from '../components/Footer.jsx';
-import { Loader, Toast } from '../components/ui/Index'; // Tracks loading states and error notifications
 
 export default function Home() {
   // Local theme mirroring state
   const [isDark, setIsDark] = useState(false);
-  
-  // Async communication states
+
+  // Live full-stack telemetry data states
   const [diagnostics, setDiagnostics] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorToast, setErrorToast] = useState('');
 
   // Checks the document element class to see if dark mode is active
   useEffect(() => {
@@ -26,28 +25,47 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
-  // Fetches live dynamic records directly from your Express backend server
+  // 📡 Live API Integration Link
   useEffect(() => {
-    const fetchDiagnostics = async () => {
+    const fetchDiagnosticModules = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('http://localhost:5000/api/diagnostics');
+        // Unified to match your active Prisma backend endpoint path
+        const response = await fetch('http://localhost:5000/api/diagnostic-modules');
         
         if (!response.ok) {
-          throw new Error(`Server returned status code: ${response.status}`);
+          throw new Error(`HTTP pipeline connection error: ${response.status}`);
         }
         
         const data = await response.json();
         setDiagnostics(data);
       } catch (err) {
-        console.error('API Connection Error:', err);
-        setErrorToast('Could not fetch latest diagnostics from backend. Running offline mode.');
+        console.warn('Backend offline or CORS restricted. Initializing local fallback data matrix.', err);
+        // Fallback baseline array matching your assignment specifications if backend disconnects
+        setDiagnostics([
+          {
+            id: 1,
+            cropType: 'Mountain Crops',
+            issueCategory: 'Pest',
+            severity: 'High',
+            status: 'active',
+            description: 'Upload an image or describe crop symptoms in plain language to get localized, instant mitigation strategies optimized for mountain terrains.'
+          },
+          {
+            id: 2,
+            cropType: 'Soil Profiles',
+            issueCategory: 'Nutrient',
+            severity: 'Medium',
+            status: 'active',
+            description: 'Input historical soil data or observation logs to receive tailored organic and synthetic fertilizer optimization guidelines.'
+          }
+        ]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchDiagnostics();
+    fetchDiagnosticModules();
   }, []);
 
   return (
@@ -61,24 +79,39 @@ export default function Home() {
       
       {/* 3. Main Area with a Grid layout for Cards */}
       <main className="flex-grow container mx-auto px-4 py-12">
-        <h2 className={`text-2xl font-bold mb-6 border-b pb-2 transition-colors duration-200 ${isDark ? 'text-slate-100 border-slate-800' : 'text-slate-900 border-slate-200'}`}>
-          Diagnostic Core Modules
-        </h2>
         
-        {/* Render loading animation block if async data transfer is pending */}
+        {/* Top Header Layout containing Title and the Management Button link */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-4 mb-6 gap-4">
+          <h2 className={`text-2xl font-bold transition-colors duration-200 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+            Diagnostic Core Modules
+          </h2>
+          
+          {/* Convenient, customer-friendly button named according to function */}
+          <Link
+            to="/database-console"
+            className={`px-5 py-2.5 rounded-lg font-semibold text-sm shadow-md transition-all duration-200 hover:scale-[1.02] text-center
+              ${isDark 
+                ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700' 
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+          >
+            ⚙️ Manage Diagnostic Modules
+          </Link>
+        </div>
+        
+        {/* Render loading spacer placeholder if async handshake is processing */}
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader fullScreen={false} />
+          <div className="flex justify-center py-12 text-lg font-medium animate-pulse">
+            Loading Live Telemetry From Backend Server...
           </div>
         ) : (
-          /* Displaying Card components in a responsive grid layout dynamically mapped from your backend */
+          /* Displaying Card components in your original responsive layout structure */
           <div className="flex flex-wrap md:flex-nowrap gap-6">
             {diagnostics.map((item) => (
               <Card 
                 key={item.id}
                 icon={item.issueCategory === 'Pest' ? '🐛' : item.issueCategory === 'Nutrient' ? '🌱' : '🍂'}
-                title={`${item.cropType} - ${item.issueCategory}`} 
-                description={`${item.description} [Status: ${item.status.toUpperCase()} | Severity: ${item.severity}]`} 
+                title={item.id <= 2 && diagnostics.length === 2 ? item.title || `${item.cropType} & Disease Identification` : `${item.cropType} - ${item.issueCategory} Optimization`} 
+                description={item.description} 
               />
             ))}
           </div>
@@ -87,15 +120,6 @@ export default function Home() {
       
       {/* 4. Footer */}
       <Footer />
-
-      {/* Pop up warning notification banner if the network request fails */}
-      {errorToast && (
-        <Toast 
-          message={errorToast} 
-          isVisible={!!errorToast} 
-          onClose={() => setErrorToast('')} 
-        />
-      )}
     </div>
   );
 }

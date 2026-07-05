@@ -1,0 +1,22 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "mysql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model DiagnosticModule {
+  id            Int      @id @default(autoincrement())
+  cropType      String
+  issueCategory String
+  severity      String
+  status        String   @default("active")
+  description   String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("diagnostic_modules")
+}
