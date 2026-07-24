@@ -1,125 +1,110 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom'; // <-- Hooked up React Router Navigation Link
-import Navbar from '../components/Navbar.jsx';
-import Hero from '../components/Hero.jsx';
-import Card from '../components/Card.jsx';
-import Footer from '../components/Footer.jsx';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Home() {
-  // Local theme mirroring state
-  const [isDark, setIsDark] = useState(false);
-
-  // Live full-stack telemetry data states
-  const [diagnostics, setDiagnostics] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Checks the document element class to see if dark mode is active
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    });
-    
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    setIsDark(document.documentElement.classList.contains('dark'));
-    
-    return () => observer.disconnect();
-  }, []);
-
-  // 📡 Live API Integration Link
-  useEffect(() => {
-    const fetchDiagnosticModules = async () => {
-      try {
-        setIsLoading(true);
-        // Unified to match your active Prisma backend endpoint path
-        const response = await fetch('http://localhost:5000/api/diagnostic-modules');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP pipeline connection error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setDiagnostics(data);
-      } catch (err) {
-        console.warn('Backend offline or CORS restricted. Initializing local fallback data matrix.', err);
-        // Fallback baseline array matching your assignment specifications if backend disconnects
-        setDiagnostics([
-          {
-            id: 1,
-            cropType: 'Mountain Crops',
-            issueCategory: 'Pest',
-            severity: 'High',
-            status: 'active',
-            description: 'Upload an image or describe crop symptoms in plain language to get localized, instant mitigation strategies optimized for mountain terrains.'
-          },
-          {
-            id: 2,
-            cropType: 'Soil Profiles',
-            issueCategory: 'Nutrient',
-            severity: 'Medium',
-            status: 'active',
-            description: 'Input historical soil data or observation logs to receive tailored organic and synthetic fertilizer optimization guidelines.'
-          }
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDiagnosticModules();
-  }, []);
-
   return (
-    // Dynamically shifts background and base text colors while keeping your structural layout intact
-    <div className={`flex flex-col min-h-screen transition-colors duration-200 ${isDark ? 'bg-slate-950 text-slate-50' : 'bg-slate-50 text-slate-900'}`}>
-      {/* 1. Navbar */}
-      <Navbar />
+    <div style={{ fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif", minHeight: '100vh', backgroundColor: '#f8fafc', color: '#1e293b' }}>
       
-      {/* 2. Hero Section */}
-      <Hero />
-      
-      {/* 3. Main Area with a Grid layout for Cards */}
-      <main className="flex-grow container mx-auto px-4 py-12">
-        
-        {/* Top Header Layout containing Title and the Management Button link */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-4 mb-6 gap-4">
-          <h2 className={`text-2xl font-bold transition-colors duration-200 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-            Diagnostic Core Modules
-          </h2>
-          
-          {/* Convenient, customer-friendly button named according to function */}
-          <Link
-            to="/database-console"
-            className={`px-5 py-2.5 rounded-lg font-semibold text-sm shadow-md transition-all duration-200 hover:scale-[1.02] text-center
-              ${isDark 
-                ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700' 
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+      {/* Navbar Header */}
+      <nav style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '16px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '22px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>🌱</span> Agri-Allied AI
+        </div>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500', cursor: 'pointer' }}>Dashboard</span>
+          <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500', cursor: 'pointer' }}>UI Demo</span>
+          <Link 
+            to="/database-console" 
+            style={{ 
+              backgroundColor: '#15803d', 
+              color: '#ffffff', 
+              padding: '9px 18px', 
+              borderRadius: '8px', 
+              textDecoration: 'none', 
+              fontWeight: '700', 
+              fontSize: '13.5px',
+              boxShadow: '0 2px 4px rgba(21, 128, 61, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
           >
             ⚙️ Manage Diagnostic Modules
           </Link>
         </div>
-        
-        {/* Render loading spacer placeholder if async handshake is processing */}
-        {isLoading ? (
-          <div className="flex justify-center py-12 text-lg font-medium animate-pulse">
-            Loading Live Telemetry From Backend Server...
+      </nav>
+
+      {/* Main Hero Section */}
+      <section style={{ backgroundColor: '#ecfdf5', padding: '64px 20px', textAlign: 'center', borderBottom: '1px solid #d1fae5' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <h1 style={{ fontSize: '42px', fontWeight: '900', color: '#064e3b', margin: '0 0 16px 0', letterSpacing: '-0.8px', lineHeight: '1.2' }}>
+            Intelligent Crop Advisory for Mountain Farming
+          </h1>
+          <p style={{ fontSize: '18px', color: '#047857', maxWidth: '750px', margin: '0 auto 28px auto', lineHeight: '1.6', fontWeight: '500' }}>
+            Empowering Uttarakhand farmers with context-aware, real-time AI troubleshooting for pest infestations, crop symptoms, and nutrient deficiencies.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '14px' }}>
+            <Link 
+              to="/database-console" 
+              style={{ padding: '12px 28px', backgroundColor: '#15803d', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontWeight: '700', fontSize: '15px' }}
+            >
+              Access Database Console →
+            </Link>
           </div>
-        ) : (
-          /* Displaying Card components in your original responsive layout structure */
-          <div className="flex flex-wrap md:flex-nowrap gap-6">
-            {diagnostics.map((item) => (
-              <Card 
-                key={item.id}
-                icon={item.issueCategory === 'Pest' ? '🐛' : item.issueCategory === 'Nutrient' ? '🌱' : '🍂'}
-                title={item.id <= 2 && diagnostics.length === 2 ? item.title || `${item.cropType} & Disease Identification` : `${item.cropType} - ${item.issueCategory} Optimization`} 
-                description={item.description} 
-              />
-            ))}
+        </div>
+      </section>
+
+      {/* Static Core Features Container */}
+      <main style={{ maxWidth: '1150px', margin: '48px auto', padding: '0 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+            Core AI Diagnostic Capability Showcase
+          </h2>
+        </div>
+
+        <div style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', display: 'grid', gap: '24px' }}>
+          
+          {/* Card 1 */}
+          <div style={{ backgroundColor: '#ffffff', padding: '28px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🌾</div>
+            <h3 style={{ fontSize: '19px', fontWeight: '700', color: '#166534', margin: '0 0 8px 0' }}>
+              Wheat & Grain Disease Identification
+            </h3>
+            <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.5', margin: 0 }}>
+              AI vision analysis model specialized in identifying Yellow Rust, Leaf Blight, and Smut in terrace wheat crops across agro-climatic zones.
+            </p>
           </div>
-        )}
+
+          {/* Card 2 */}
+          <div style={{ backgroundColor: '#ffffff', padding: '28px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🌱</div>
+            <h3 style={{ fontSize: '19px', fontWeight: '700', color: '#166534', margin: '0 0 8px 0' }}>
+              Paddy & Rice Pest Diagnostics
+            </h3>
+            <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.5', margin: 0 }}>
+              Early detection algorithms targeting Stem Borer, Brown Planthopper, and Bacterial Leaf Blight in highland valley rice fields.
+            </p>
+          </div>
+
+          {/* Card 3 */}
+          <div style={{ backgroundColor: '#ffffff', padding: '28px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🧪</div>
+            <h3 style={{ fontSize: '19px', fontWeight: '700', color: '#166534', margin: '0 0 8px 0' }}>
+              Soil Health & NPK Deficiency Engine
+            </h3>
+            <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.5', margin: 0 }}>
+              Integrated diagnostic rule engine providing targeted organic and chemical remedy recommendations based on soil NPK levels.
+            </p>
+          </div>
+
+        </div>
       </main>
-      
-      {/* 4. Footer */}
-      <Footer />
+
+      {/* Footer */}
+      <footer style={{ backgroundColor: '#0f172a', color: '#94a3b8', padding: '24px', textAlign: 'center', fontSize: '13px', borderTop: '1px solid #1e293b' }}>
+        © 2026 Agri-Allied AI Platform • Optimized for Uttarakhand Agro-Climatic Regions
+      </footer>
+
     </div>
   );
 }

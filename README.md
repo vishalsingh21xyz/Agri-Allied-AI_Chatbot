@@ -46,3 +46,32 @@ To launch the backend engine room and test the REST API endpoints locally, follo
 
     Bash
     npm run dev
+
+
+
+
+
+
+    ## 🗄️ Week 5 Database Integration Strategy
+
+### 1. Database Choice & Technical Justification
+For this architecture, **MariaDB via Aiven Cloud** was chosen as the primary relational database layer. Relational structures provide strict type safety, ACID compliance, and excellent indexing capabilities for structured telemetry logs. Utilizing an enterprise cloud provider like Aiven ensures scalable, offsite data persistence rather than relying on ephemeral local mock environments. 
+
+### 2. Schema Architecture Diagram
+Below is the structural layout tracking the persistent telemetry entities for the diagnostic modules:
+
+![Schema Diagram](./W5_SchemaDiagram_26100090.png)
+
+### 3. Database Bootstrap & Setup Instructions
+To initialize the full-stack database connection pipeline locally, follow these steps:
+
+1. **Clone the Environment Template:**
+   Ensure you have a `.env` file configured in your `backend/` directory based on the provided `.env.example`.
+2. **Configure Connection String:**
+   Supply your cloud access credentials within the `DATABASE_URL` variable inside `.env`.
+3. **Install Core Dependencies:**
+   Run `npm install` inside the backend directory to pull down `@prisma/client` and the required database adapters.
+4. **Deploy Schema Migrations:**
+   Synchronize your cloud instance with the local Prisma structural files by executing:
+   ```bash
+   npx prisma db push
