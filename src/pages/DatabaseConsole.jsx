@@ -1,32 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
+const API_URL = 'http://localhost:5000/api/diagnostic-modules';
 
 export default function DatabaseConsole() {
   const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   // Form state
   const [formData, setFormData] = useState({
     cropType: '',
     issueCategory: '',
-    severity: 'High',
+    severity: 'Medium',
     status: 'Pending',
     description: ''
   });
 
-  const API_URL = 'http://localhost:5000/api/diagnostic-modules';
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // 1. READ ALL RECORDS
+  // Helper to get Authorization Header
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  // 1. FETCH ALL RECORDS (GET)
   const fetchRecords = async () => {
     try {
       setLoading(true);
       const res = await fetch(API_URL);
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) throw new Error('Failed to fetch records.');
       const data = await res.json();
-      setRecords(Array.isArray(data) ? data : []);
+      setRecords(data);
+      setError(null);
     } catch (err) {
-      console.error('Error fetching records:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -36,319 +49,279 @@ export default function DatabaseConsole() {
     fetchRecords();
   }, []);
 
-  // Handle Input Changes
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // 2. CREATE RECORD
+  // 2. CREATE RECORD (POST with Bearer Token)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.cropType || !formData.issueCategory) {
-      alert('Please fill in both Crop Type and Issue Category!');
-      return;
-    }
-
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(formData)
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to insert record');
-      }
+      const data = await res.json();
 
-      setMessage('✓ Record created successfully in Aiven DB!');
-      setTimeout(() => setMessage(''), 3500);
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create record.');
+      }
 
       setFormData({
         cropType: '',
         issueCategory: '',
-        severity: 'High',
+        severity: 'Medium',
         status: 'Pending',
         description: ''
       });
-      fetchRecords();
+      
+      fetchRecords(); // Refresh list
     } catch (err) {
-      console.error('Submit Error:', err);
       alert(`Error submitting record: ${err.message}`);
     }
   };
 
-  // 3. DELETE RECORD
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this diagnostic module record?')) return;
+  // 3. UPDATE STATUS (PUT with Bearer Token)
+  const handleStatusChange = async (id, newStatus) => {
+    const target = records.find(r => r.id === id);
+    if (!target) return;
 
     try {
-      const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete record');
-      
-      setMessage('✓ Record deleted successfully!');
-      setTimeout(() => setMessage(''), 3500);
+      const res = await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ ...target, status: newStatus })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update record.');
+
       fetchRecords();
     } catch (err) {
-      console.error('Delete Error:', err);
+      alert(`Error updating status: ${err.message}`);
+    }
+  };
+
+  // 4. DELETE RECORD (DELETE with Bearer Token)
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this diagnostic entry?')) return;
+
+    try {
+      const res = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete record.');
+
+      fetchRecords();
+    } catch (err) {
       alert(`Error deleting record: ${err.message}`);
     }
   };
 
-  // 4. UPDATE RECORD STATUS
-  const handleStatusUpdate = async (record) => {
-    const newStatus = record.status === 'Pending' ? 'Resolved' : 'Pending';
-    try {
-      const res = await fetch(`${API_URL}/${record.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...record, status: newStatus })
-      });
-      if (!res.ok) throw new Error('Failed to update status');
-      
-      fetchRecords();
-    } catch (err) {
-      console.error('Update Error:', error);
-      alert(`Error updating record: ${err.message}`);
-    }
+  // 5. LOGOUT
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 24px', fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}>
-      
-      {/* Top Navigation & Header Area */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '32px' }}>🌱</span>
-            <h1 style={{ fontSize: '32px', fontWeight: '800', color: '#14532d', margin: 0, letterSpacing: '-0.5px' }}>
-              Diagnostic Modules Management Panel
-            </h1>
-          </div>
-          
-        </div>
-
-        <Link to="/" style={{ 
-          padding: '10px 20px', 
-          backgroundColor: '#1e293b', 
-          color: '#ffffff', 
-          borderRadius: '8px', 
-          textDecoration: 'none', 
-          fontWeight: '600',
-          fontSize: '14px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          transition: 'all 0.2s ease'
-        }}>
-          ← Back to Home
-        </Link>
-      </div>
-
-      <div style={{ height: '3px', background: 'linear-gradient(90deg, #15803d 0%, #86efac 100%)', borderRadius: '2px', marginBottom: '32px' }} />
-
-      {/* Alert Banner */}
-      {message && (
-        <div style={{ 
-          padding: '14px 20px', 
-          backgroundColor: '#f0fdf4', 
-          color: '#166534', 
-          border: '1px solid #bbf7d0', 
-          borderRadius: '8px', 
-          marginBottom: '24px', 
-          fontWeight: '600',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 2px 4px rgba(22, 101, 52, 0.05)'
-        }}>
-          {message}
-        </div>
-      )}
-
-      {/* Main Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '32px' }}>
+    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans p-6">
+      <div className="max-w-6xl mx-auto">
         
-        {/* Left Form Column */}
-        <div style={{ 
-          padding: '28px', 
-          border: '1px solid #e2e8f0', 
-          borderRadius: '12px', 
-          backgroundColor: '#ffffff',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' 
-        }}>
-          <h2 style={{ margin: '0 0 20px 0', color: '#1f2937', fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#16a34a' }}>➕</span> Add New Diagnostic Entry
-          </h2>
+        {/* Header Bar */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+              <span>🌱</span> Diagnostic Module Cloud Console
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Logged in as: <strong className="text-green-700">{user.email || 'Authenticated User'}</strong>
+            </p>
+          </div>
           
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '18px' }}>
-              <label style={{ display: 'block', fontWeight: '600', color: '#374151', fontSize: '14px', marginBottom: '6px' }}>Crop Type</label>
-              <input
-                type="text"
-                name="cropType"
-                value={formData.cropType}
-                onChange={handleChange}
-                placeholder="e.g. Wheat, Rice, Sugarcane"
-                required
-                style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '18px' }}>
-              <label style={{ display: 'block', fontWeight: '600', color: '#374151', fontSize: '14px', marginBottom: '6px' }}>Issue Category</label>
-              <input
-                type="text"
-                name="issueCategory"
-                value={formData.issueCategory}
-                onChange={handleChange}
-                placeholder="e.g. Fungal Blight, Stem Borer"
-                required
-                style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
-              <div>
-                <label style={{ display: 'block', fontWeight: '600', color: '#374151', fontSize: '14px', marginBottom: '6px' }}>Severity</label>
-                <select name="severity" value={formData.severity} onChange={handleChange} style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#f8fafc' }}>
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontWeight: '600', color: '#374151', fontSize: '14px', marginBottom: '6px' }}>Status</label>
-                <select name="status" value={formData.status} onChange={handleChange} style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#f8fafc' }}>
-                  <option value="Pending">Pending</option>
-                  <option value="Investigating">Investigating</option>
-                  <option value="Resolved">Resolved</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontWeight: '600', color: '#374151', fontSize: '14px', marginBottom: '6px' }}>Notes / Description</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows="3"
-                placeholder="Observed field symptoms and severity details..."
-                style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc', resize: 'vertical' }}
-              />
-            </div>
-
+          <div className="flex items-center gap-3">
             <button
-              type="submit"
-              style={{ 
-                width: '100%', 
-                padding: '13px', 
-                backgroundColor: '#15803d', 
-                color: '#ffffff', 
-                border: 'none', 
-                borderRadius: '8px', 
-                fontWeight: '700', 
-                cursor: 'pointer', 
-                fontSize: '15px',
-                boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.2)',
-                transition: 'background 0.2s ease'
-              }}
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition"
             >
-              Submit to Cloud DB
+              Sign Out
             </button>
-          </form>
+            <Link
+              to="/"
+              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+            >
+              ← Back to Home
+            </Link>
+          </div>
         </div>
 
-        {/* Right Cards List Column */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ margin: 0, color: '#1f2937', fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🗄️</span> Active Database Records
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Create Record Form */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-fit">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <span>➕</span> Add New Diagnostic Entry
             </h2>
-            <span style={{ backgroundColor: '#e2e8f0', color: '#334155', padding: '4px 12px', borderRadius: '16px', fontWeight: '700', fontSize: '13px' }}>
-              {records.length} Total
-            </span>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Crop Type</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Wheat, Paddy, Tomato"
+                  value={formData.cropType}
+                  onChange={(e) => setFormData({ ...formData, cropType: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Issue Category</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Yellow Rust, Stem Borer"
+                  value={formData.issueCategory}
+                  onChange={(e) => setFormData({ ...formData, issueCategory: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Severity</label>
+                  <select
+                    value={formData.severity}
+                    onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-600 focus:outline-none"
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-600 focus:outline-none"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Under Review">Under Review</option>
+                    <option value="Resolved">Resolved</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Notes / Description</label>
+                <textarea
+                  rows="3"
+                  placeholder="Symptoms observed..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-green-700 hover:bg-green-800 text-white font-bold rounded-lg text-sm transition shadow-sm"
+              >
+                Submit to Cloud DB
+              </button>
+            </form>
           </div>
 
-          {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-              <p>Fetching records from Aiven Database...</p>
+          {/* Records Table View */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-slate-800">
+                Live Cloud Database Records
+              </h2>
+              <span className="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
+                {records.length} Total
+              </span>
             </div>
-          ) : records.length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', border: '2px dashed #cbd5e1', borderRadius: '12px', color: '#64748b', backgroundColor: '#f8fafc' }}>
-              <p style={{ margin: 0, fontSize: '15px', fontWeight: '500' }}>No diagnostic modules found in cloud storage.</p>
-              <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: '#94a3b8' }}>Fill out the form on the left to insert an entry.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {records.map((item) => (
-                <div key={item.id} style={{ 
-                  padding: '20px', 
-                  border: '1px solid #e2e8f0', 
-                  borderRadius: '12px', 
-                  backgroundColor: '#ffffff', 
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)',
-                  transition: 'transform 0.2s ease'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h3 style={{ margin: 0, color: '#14532d', fontSize: '18px', fontWeight: '700' }}>
-                      {item.cropType} <span style={{ color: '#94a3b8', fontWeight: '400' }}>—</span> {item.issueCategory}
-                    </h3>
-                    <span style={{ 
-                      padding: '4px 12px', 
-                      borderRadius: '20px', 
-                      fontSize: '12px', 
-                      fontWeight: '700',
-                      backgroundColor: item.status === 'Resolved' ? '#dcfce7' : '#fef9c3',
-                      color: item.status === 'Resolved' ? '#15803d' : '#a16207',
-                      border: item.status === 'Resolved' ? '1px solid #bbf7d0' : '1px solid #fef08a'
-                    }}>
-                      {item.status}
-                    </span>
-                  </div>
 
-                  <p style={{ margin: '0 0 16px 0', color: '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>
-                    <strong style={{ color: '#374151' }}>Severity:</strong> {item.severity} &nbsp;|&nbsp; <strong style={{ color: '#374151' }}>Description:</strong> {item.description || 'N/A'}
-                  </p>
+            {loading ? (
+              <div className="text-center py-12 text-slate-400 font-medium">
+                Syncing with Aiven Cloud Database...
+              </div>
+            ) : error ? (
+              <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
+                {error}
+              </div>
+            ) : records.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
+                No diagnostic modules found in cloud storage.<br />
+                Fill out the form on the left to insert an entry.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-700">
+                  <thead className="text-xs uppercase bg-slate-50 text-slate-500 border-b border-slate-200">
+                    <tr>
+                      <th className="py-3 px-3">Crop / Issue</th>
+                      <th className="py-3 px-3">Severity</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {records.map((rec) => (
+                      <tr key={rec.id} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-slate-900">{rec.cropType}</div>
+                          <div className="text-xs text-slate-500">{rec.issueCategory}</div>
+                          {rec.description && (
+                            <div className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{rec.description}</div>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`inline-block px-2.5 py-0.5 text-xs font-bold rounded-full ${
+                            rec.severity === 'Critical' ? 'bg-red-100 text-red-700' :
+                            rec.severity === 'High' ? 'bg-orange-100 text-orange-700' :
+                            rec.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-slate-100 text-slate-700'
+                          }`}>
+                            {rec.severity}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <select
+                            value={rec.status}
+                            onChange={(e) => handleStatusChange(rec.id, e.target.value)}
+                            className="text-xs font-medium border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-green-600"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Under Review">Under Review</option>
+                            <option value="Resolved">Resolved</option>
+                          </select>
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <button
+                            onClick={() => handleDelete(rec.id)}
+                            className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
-                  <div style={{ display: 'flex', gap: '10px', pt: '8px', borderTop: '1px solid #f1f5f9' }}>
-                    <button 
-                      onClick={() => handleStatusUpdate(item)}
-                      style={{ 
-                        padding: '7px 14px', 
-                        backgroundColor: '#0284c7', 
-                        color: '#ffffff', 
-                        border: 'none', 
-                        borderRadius: '6px', 
-                        cursor: 'pointer', 
-                        fontSize: '13px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      Toggle Status ({item.status === 'Pending' ? 'Mark Resolved' : 'Mark Pending'})
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(item.id)}
-                      style={{ 
-                        padding: '7px 14px', 
-                        backgroundColor: '#ef4444', 
-                        color: '#ffffff', 
-                        border: 'none', 
-                        borderRadius: '6px', 
-                        cursor: 'pointer', 
-                        fontSize: '13px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      Delete Entry
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-
       </div>
     </div>
   );

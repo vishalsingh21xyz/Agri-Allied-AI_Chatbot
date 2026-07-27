@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
 import Navbar from '../components/Navbar.jsx';
 import Footer from '../components/Footer.jsx';
 
-export default function Login() {
+export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Standard Email/Password Login
-  const handleLogin = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const res = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -27,13 +25,11 @@ export default function Login() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Login failed.');
+        throw new Error(data.error || 'Registration failed.');
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      navigate('/database-console');
+      alert('Account registered successfully! Please log in.');
+      navigate('/login');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,45 +37,20 @@ export default function Login() {
     }
   };
 
-  // Google OAuth Handler
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setError('');
-    try {
-      const res = await fetch('http://localhost:5000/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken: credentialResponse.credential })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Google Sign-In failed.');
-      }
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      navigate('/database-console');
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
       <Navbar />
       <main className="flex-grow container mx-auto px-4 py-12 max-w-4xl">
-        <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Account Portal</h1>
+        <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Create an Account</h1>
         <p className="text-slate-600 leading-relaxed text-lg mb-8">
-          Please log in to your account here to access personalized mountain farming advisories, track your supervisor tickets, and manage platform preferences securely.
+          Register for the Agri-Allied AI platform to access real-time crop diagnostics and database management tools.
         </p>
 
-        {/* Login Form Container */}
+        {/* Register Form Container */}
         <div className="max-w-md mx-auto bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
           <div className="text-center mb-6">
-            <span className="text-4xl">🔑</span>
-            <h2 className="text-2xl font-bold text-slate-800 mt-2">Sign In</h2>
+            <span className="text-4xl">📝</span>
+            <h2 className="text-2xl font-bold text-slate-800 mt-2">Sign Up</h2>
           </div>
 
           {error && (
@@ -88,7 +59,7 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
               <input
@@ -118,35 +89,14 @@ export default function Login() {
               disabled={loading}
               className="w-full py-3 bg-green-700 hover:bg-green-800 text-white font-bold rounded-lg transition duration-200 shadow-sm disabled:opacity-50"
             >
-              {loading ? 'Authenticating...' : 'Sign In'}
+              {loading ? 'Creating Account...' : 'Register'}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-slate-500 font-semibold">Or continue with</span>
-            </div>
-          </div>
-
-          {/* Safe Google OAuth Render */}
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError('Google Sign-In was unsuccessful.')}
-              shape="rectangular"
-              theme="outline"
-              size="large"
-            />
-          </div>
-
           <p className="text-center text-sm text-slate-600 mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-bold text-green-700 hover:underline">
-              Register here
+            Already have an account?{' '}
+            <Link to="/login" className="font-bold text-green-700 hover:underline">
+              Sign in here
             </Link>
           </p>
         </div>

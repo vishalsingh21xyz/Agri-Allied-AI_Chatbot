@@ -1,5 +1,5 @@
 // =================================================================
-// 1. ALLOW AIVEN SELF-SIGNED SSL CERTIFICATES (Must run FIRST)
+// 1. ALLOW AIVEN SELF-SIGNED SSL & INITIALIZE ENV
 // =================================================================
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 require('dotenv').config();
@@ -9,11 +9,15 @@ const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
 
+// Imports for Auth and Routes
+const authRoutes = require('./routes/auth');
+const verifyToken = require('./middleware/auth');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // =================================================================
-// 2. PARSE AIVEN URL & INITIALIZE ADAPTER
+// 2. PARSE AIVEN URL & INITIALIZE PRISMA ADAPTER
 // =================================================================
 const dbUrl = new URL(process.env.DATABASE_URL);
 
@@ -29,12 +33,13 @@ const adapter = new PrismaMariaDb({
   connectionLimit: 10
 });
 
+// Single instance declaration of PrismaClient
 const prisma = new PrismaClient({ adapter });
 
 // Safe getter for model casing
 const getModel = () => prisma.diagnosticModule || prisma.diagnostic_modules;
 
-// Startup connection check
+// Startup connection test
 async function testConnection() {
   try {
     await prisma.$connect();
@@ -46,7 +51,7 @@ async function testConnection() {
 testConnection();
 
 // =================================================================
-// 3. MIDDLEWARE
+// 3. MIDDLEWARE & AUTH ROUTER MOUNT
 // =================================================================
 app.use(cors());
 app.use(express.json());
@@ -56,11 +61,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Mount Auth Routes passing the single prisma instance
+app.use('/api/auth', authRoutes(prisma));
+
 // =================================================================
-// 4. API ENDPOINTS
+// 4. DIAGNOSTIC MODULES API ENDPOINTS
 // =================================================================
 
-// READ ALL
+// READ ALL (Public access)
 app.get('/api/diagnostic-modules', async (req, res) => {
   try {
     const records = await getModel().findMany();
@@ -71,11 +79,11 @@ app.get('/api/diagnostic-modules', async (req, res) => {
   }
 });
 
-// CREATE
-app.post('/api/diagnostic-modules', async (req, res) => {
+// CREATE (PROTECTED by verifyToken)
+app.post('/api/diagnostic-modules', verifyToken, async (req, res) => {
   try {
     const { cropType, issueCategory, severity, status, description } = req.body;
-    
+
     if (!cropType || !issueCategory) {
       return res.status(400).json({ error: 'Crop Type and Issue Category are required.' });
     }
@@ -89,7 +97,7 @@ app.post('/api/diagnostic-modules', async (req, res) => {
         description: description || ''
       }
     });
-    console.log('✅ Created in Cloud DB:', newModule.id);
+    console.log('✅ Created by authenticated user:', req.user.email);
     res.status(201).json(newModule);
   } catch (error) {
     console.error('Create Error:', error);
@@ -97,8 +105,8 @@ app.post('/api/diagnostic-modules', async (req, res) => {
   }
 });
 
-// UPDATE
-app.put('/api/diagnostic-modules/:id', async (req, res) => {
+// UPDATE (PROTECTED by verifyToken)
+app.put('/api/diagnostic-modules/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { cropType, issueCategory, severity, status, description } = req.body;
@@ -113,8 +121,8 @@ app.put('/api/diagnostic-modules/:id', async (req, res) => {
   }
 });
 
-// DELETE
-app.delete('/api/diagnostic-modules/:id', async (req, res) => {
+// DELETE (PROTECTED by verifyToken)
+app.delete('/api/diagnostic-modules/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     await getModel().delete({

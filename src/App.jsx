@@ -3,19 +3,41 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Demo from './pages/Demo';
-import DatabaseConsole from './pages/DatabaseConsole'; // <-- Your CRUD page file
+import DatabaseConsole from './pages/DatabaseConsole';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
-        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/demo" element={<Demo />} />
-        <Route path="/database-console" element={<DatabaseConsole />} /> {/* <-- The target path */}
+        
+        {/* Protected Route 1: User Dashboard */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Protected Route 2: Database Console */}
+        <Route 
+          path="/database-console" 
+          element={
+            <ProtectedRoute>
+              <DatabaseConsole />
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
     </Router>
   );

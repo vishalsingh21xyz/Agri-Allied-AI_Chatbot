@@ -1,7 +1,16 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Home() {
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   return (
     <div style={{ fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif", minHeight: '100vh', backgroundColor: '#f8fafc', color: '#1e293b' }}>
       
@@ -13,6 +22,26 @@ export default function Home() {
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500', cursor: 'pointer' }}>Dashboard</span>
           <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500', cursor: 'pointer' }}>UI Demo</span>
+          
+          {/* Conditional Auth Links */}
+          {token ? (
+            <button 
+              onClick={handleLogout}
+              style={{ fontSize: '14px', color: '#dc2626', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Logout
+            </button>
+          ) : (
+            <>
+              <Link to="/login" style={{ fontSize: '14px', color: '#64748b', fontWeight: '600', textDecoration: 'none' }}>
+                Login
+              </Link>
+              <Link to="/register" style={{ fontSize: '14px', color: '#15803d', fontWeight: '600', textDecoration: 'none' }}>
+                Register
+              </Link>
+            </>
+          )}
+
           <Link 
             to="/database-console" 
             style={{ 
