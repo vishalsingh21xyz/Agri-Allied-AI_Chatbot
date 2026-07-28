@@ -9,8 +9,9 @@ const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
 
-// Imports for Auth and Routes
+// Imports for Auth, AI, and Middleware
 const authRoutes = require('./routes/auth');
+const aiRoutes = require('./routes/ai');
 const verifyToken = require('./middleware/auth');
 
 const app = express();
@@ -51,7 +52,7 @@ async function testConnection() {
 testConnection();
 
 // =================================================================
-// 3. MIDDLEWARE & AUTH ROUTER MOUNT
+// 3. MIDDLEWARE & ROUTER MOUNTS
 // =================================================================
 app.use(cors());
 app.use(express.json());
@@ -63,6 +64,9 @@ app.use((req, res, next) => {
 
 // Mount Auth Routes passing the single prisma instance
 app.use('/api/auth', authRoutes(prisma));
+
+// Mount Week 7 AI Routes
+app.use('/api/ai', aiRoutes);
 
 // =================================================================
 // 4. DIAGNOSTIC MODULES API ENDPOINTS

@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -29,7 +30,7 @@ function App() {
           } 
         />
 
-        {/* Protected Route 2: Database Console */}
+        {/* Protected Route 2: Database Console (Includes AI Diagnostic Assistant) */}
         <Route 
           path="/database-console" 
           element={

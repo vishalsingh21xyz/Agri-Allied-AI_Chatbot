@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import AIDiagnostic from '../components/AIDiagnostic';
 
 const API_URL = 'http://localhost:5000/api/diagnostic-modules';
 
@@ -155,6 +156,11 @@ export default function DatabaseConsole() {
               ← Back to Home
             </Link>
           </div>
+        </div>
+
+        {/* Week 7: AI Diagnostic Assistant Component */}
+        <div className="mb-8">
+          <AIDiagnostic />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
