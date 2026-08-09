@@ -21,13 +21,30 @@ export default function DatabaseConsole() {
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Helper to get Authorization Header
+  // Helper to get Authorization Header & check token validity
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Your session has expired. Please log in again.');
+      navigate('/login');
+      return null;
+    }
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     };
+  };
+
+  // Helper to handle authentication errors gracefully
+  const handleAuthError = (res, data) => {
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      alert('Session expired or invalid token. Redirecting to login.');
+      navigate('/login');
+      return true;
+    }
+    return false;
   };
 
   // 1. FETCH ALL RECORDS (GET)
@@ -35,9 +52,12 @@ export default function DatabaseConsole() {
     try {
       setLoading(true);
       const res = await fetch(API_URL);
-      if (!res.ok) throw new Error('Failed to fetch records.');
+      if (!res.ok) throw new Error('Failed to fetch records from database.');
       const data = await res.json();
-      setRecords(data);
+      
+      // Support array or object formats (e.g. { data: [...] })
+      const recordsList = Array.isArray(data) ? data : (data.data || []);
+      setRecords(recordsList);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -53,19 +73,25 @@ export default function DatabaseConsole() {
   // 2. CREATE RECORD (POST with Bearer Token)
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const headers = getAuthHeaders();
+    if (!headers) return;
+
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify(formData)
       });
 
       const data = await res.json();
 
+      if (handleAuthError(res, data)) return;
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to create record.');
+        throw new Error(data.error || data.message || 'Failed to create record.');
       }
 
+      // Reset form
       setFormData({
         cropType: '',
         issueCategory: '',
@@ -74,7 +100,12 @@ export default function DatabaseConsole() {
         description: ''
       });
       
-      fetchRecords(); // Refresh list
+      // Update local state directly for instant feedback and fetch latest data
+      const newEntry = data.data || data;
+      if (newEntry && newEntry.id) {
+        setRecords((prev) => [newEntry, ...prev]);
+      }
+      fetchRecords();
     } catch (err) {
       alert(`Error submitting record: ${err.message}`);
     }
@@ -85,15 +116,21 @@ export default function DatabaseConsole() {
     const target = records.find(r => r.id === id);
     if (!target) return;
 
+    const headers = getAuthHeaders();
+    if (!headers) return;
+
     try {
       const res = await fetch(`${API_URL}/${id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify({ ...target, status: newStatus })
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update record.');
+      
+      if (handleAuthError(res, data)) return;
+
+      if (!res.ok) throw new Error(data.error || data.message || 'Failed to update record.');
 
       fetchRecords();
     } catch (err) {
@@ -105,15 +142,23 @@ export default function DatabaseConsole() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this diagnostic entry?')) return;
 
+    const headers = getAuthHeaders();
+    if (!headers) return;
+
     try {
       const res = await fetch(`${API_URL}/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete record.');
 
+      if (handleAuthError(res, data)) return;
+
+      if (!res.ok) throw new Error(data.error || data.message || 'Failed to delete record.');
+
+      // Remove item immediately from UI
+      setRecords((prev) => prev.filter((r) => r.id !== id));
       fetchRecords();
     } catch (err) {
       alert(`Error deleting record: ${err.message}`);
@@ -158,7 +203,7 @@ export default function DatabaseConsole() {
           </div>
         </div>
 
-        {/* Week 7: AI Diagnostic Assistant Component */}
+        {/* AI Diagnostic Assistant Component */}
         <div className="mb-8">
           <AIDiagnostic />
         </div>
@@ -258,7 +303,7 @@ export default function DatabaseConsole() {
 
             {loading ? (
               <div className="text-center py-12 text-slate-400 font-medium">
-                Syncing with Aiven Cloud Database...
+                Syncing with Cloud Database...
               </div>
             ) : error ? (
               <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
@@ -281,11 +326,11 @@ export default function DatabaseConsole() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {records.map((rec) => (
-                      <tr key={rec.id} className="hover:bg-slate-50/80 transition">
+                    {records.map((rec, idx) => (
+                      <tr key={rec.id || idx} className="hover:bg-slate-50/80 transition">
                         <td className="py-3 px-3">
                           <div className="font-bold text-slate-900">{rec.cropType}</div>
-                          <div className="text-xs text-slate-500">{rec.issueCategory}</div>
+                          <div className="text-xs text-slate-500">{rec.issueCategory || rec.category}</div>
                           {rec.description && (
                             <div className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{rec.description}</div>
                           )}
@@ -302,7 +347,7 @@ export default function DatabaseConsole() {
                         </td>
                         <td className="py-3 px-3">
                           <select
-                            value={rec.status}
+                            value={rec.status || 'Pending'}
                             onChange={(e) => handleStatusChange(rec.id, e.target.value)}
                             className="text-xs font-medium border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-green-600"
                           >

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const AIDiagnostic = () => {
   const [cropType, setCropType] = useState('Wheat');
@@ -8,37 +8,41 @@ const AIDiagnostic = () => {
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
 
-  const handleDiagnose = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  // New CRUD Management States
+  const [savedRecords, setSavedRecords] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [deleteModalId, setDeleteModalId] = useState(null);
 
+  // Helper to get Authorization Header
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  // FETCH ALL SAVED RECORDS (READ)
+  const fetchRecords = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/ai/diagnose', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ cropType, symptoms, region }),
+      if (!token) return;
+
+      const res = await fetch('http://localhost:5000/api/diagnostic-modules', {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to generate diagnosis.');
+      if (res.ok) {
+        const data = await res.json();
+        setSavedRecords(Array.isArray(data) ? data : data.data || []);
       }
-
-      // Parse structured text sections for grid card layout
-      const sections = parseReportSections(data.analysis);
-      setReport(sections);
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch diagnostic records:', err);
     }
   };
+
+  useEffect(() => {
+    fetchRecords();
+  }, []);
 
   // Helper function to extract structured 4-quadrant report sections
   const parseReportSections = (text) => {
@@ -69,6 +73,70 @@ const AIDiagnostic = () => {
     });
 
     return sections;
+  };
+
+  // HANDLE AI DIAGNOSE OR UPDATE
+  const handleDiagnose = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const endpoint = editingId
+        ? `http://localhost:5000/api/diagnostic-modules/${editingId}`
+        : 'http://localhost:5000/api/ai/diagnose';
+
+      const method = editingId ? 'PUT' : 'POST';
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ cropType, symptoms, region }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate diagnosis.');
+      }
+
+      // Parse structured text sections for grid card layout
+      const sections = parseReportSections(data.analysis || data.symptoms);
+      setReport(sections);
+      setEditingId(null);
+      fetchRecords(); // Refresh list after saving/updating
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // POPULATE FORM FOR EDITING (UPDATE)
+  const handleEdit = (rec) => {
+    setEditingId(rec.id);
+    setCropType(rec.cropType || '');
+    setRegion(rec.location || rec.region || '');
+    setSymptoms(rec.symptoms || rec.description || '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // CONFIRM DELETION (DELETE)
+  const confirmDelete = async () => {
+    if (!deleteModalId) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/diagnostic-modules/${deleteModalId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      if (!res.ok) throw new Error('Failed to delete record.');
+      setSavedRecords((prev) => prev.filter((r) => r.id !== deleteModalId));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleteModalId(null);
+    }
   };
 
   return (
@@ -129,26 +197,42 @@ const AIDiagnostic = () => {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 text-lg disabled:opacity-50"
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-              </svg>
-              <span>Analyzing Crop Symptoms with AI...</span>
-            </>
-          ) : (
-            <>
-              <span>🤖</span>
-              <span>Generate AI Diagnosis</span>
-            </>
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 text-lg disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span>Analyzing Crop Symptoms with AI...</span>
+              </>
+            ) : (
+              <>
+                <span>🤖</span>
+                <span>{editingId ? '💾 Save Updated Record' : 'Generate AI Diagnosis'}</span>
+              </>
+            )}
+          </button>
+
+          {editingId && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setCropType('Wheat');
+                setSymptoms('');
+              }}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-5 py-3.5 rounded-xl transition-all"
+            >
+              Cancel
+            </button>
           )}
-        </button>
+        </div>
       </form>
 
       {/* Error Alert */}
@@ -210,6 +294,66 @@ const AIDiagnostic = () => {
               <p className="text-gray-800 text-base leading-relaxed whitespace-pre-line">
                 {report.prevention || '• Use disease-resistant varieties\n• Avoid excess nitrogen fertilizers'}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Saved Records List & CRUD Controls */}
+      {savedRecords.length > 0 && (
+        <div className="mt-12 border-t border-gray-200 pt-8">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Saved AI Diagnostic Records</h3>
+          <div className="space-y-3">
+            {savedRecords.map((rec) => (
+              <div
+                key={rec.id}
+                className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200"
+              >
+                <div>
+                  <h4 className="font-bold text-gray-800">{rec.cropType}</h4>
+                  <p className="text-xs text-gray-500">{rec.symptoms || rec.description}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(rec)}
+                    className="text-xs bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-lg hover:bg-amber-200 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setDeleteModalId(rec.id)}
+                    className="text-xs bg-red-100 text-red-700 font-bold px-3 py-1.5 rounded-lg hover:bg-red-200 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Destructive Action Confirmation Modal */}
+      {deleteModalId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h4 className="text-lg font-bold text-gray-900 mb-2">Confirm Deletion</h4>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to delete this diagnostic entry? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteModalId(null)}
+                className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
