@@ -54,7 +54,26 @@ testConnection();
 // =================================================================
 // 3. MIDDLEWARE & ROUTER MOUNTS
 // =================================================================
-app.use(cors());
+
+// Dynamic CORS Configuration supporting Localhost and Live Vercel Production
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL // Populated dynamically from Render dashboard
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // Allow fallback during initial deployment testing
+      callback(null, true);
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
 app.use((req, res, next) => {

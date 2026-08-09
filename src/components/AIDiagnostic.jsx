@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const AIDiagnostic = () => {
   const [cropType, setCropType] = useState('Wheat');
   const [region, setRegion] = useState('Punjab');
@@ -28,7 +30,7 @@ const AIDiagnostic = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const res = await fetch('http://localhost:5000/api/diagnostic-modules', {
+      const res = await fetch(`${API_BASE_URL}/api/diagnostic-modules`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -83,8 +85,8 @@ const AIDiagnostic = () => {
 
     try {
       const endpoint = editingId
-        ? `http://localhost:5000/api/diagnostic-modules/${editingId}`
-        : 'http://localhost:5000/api/ai/diagnose';
+        ? `${API_BASE_URL}/api/diagnostic-modules/${editingId}`
+        : `${API_BASE_URL}/api/ai/diagnose`;
 
       const method = editingId ? 'PUT' : 'POST';
 
@@ -125,7 +127,7 @@ const AIDiagnostic = () => {
   const confirmDelete = async () => {
     if (!deleteModalId) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/diagnostic-modules/${deleteModalId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/diagnostic-modules/${deleteModalId}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });

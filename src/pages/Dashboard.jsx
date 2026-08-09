@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function Dashboard() {
   const [userItems, setUserItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ export default function Dashboard() {
         throw new Error('No authentication token found. Please sign in.');
       }
 
-      const response = await fetch('http://localhost:5000/api/diagnostic-modules', {
+      const response = await fetch(`${API_BASE_URL}/api/diagnostic-modules`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
